@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "my_krml_25033147"
+version = "0.1.0"
+description = "tools for sucess in advanced machine learning"
+authors = ["Santiago Cardenas"]
+license = "None"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11.4"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
