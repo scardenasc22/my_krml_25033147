@@ -12,7 +12,7 @@ def auc_performance_comparison(
     val_features : DataFrame,
     train_target : Series,
     val_target : Series
-) -> str:
+) -> None:
     """
     computes the auc roc score for training, validation set, and the difference between the two
     args:
@@ -22,13 +22,13 @@ def auc_performance_comparison(
         train_target (Series): Training target variable
         val_target (Series): Validation target variable
     returns
-        str : the comparison between the training and validation performance
+        None : prints the comparison between the training and validation performance
     """
     pred_prob_train = model.predict_proba(train_features)
     pred_prob_val = model.predict_proba(val_features)
     train_auc = roc_auc_score(train_target, pred_prob_train[:, 1])
     val_auc = roc_auc_score(val_target, pred_prob_val[:, 1])
-    return f"training AUC: {train_auc:5f}\nvalidation AUC: {val_auc:5f}\ndifference: {(train_auc - val_auc):5f}"
+    print(f"training AUC: {train_auc:5f}\nvalidation AUC: {val_auc:5f}\ndifference: {(train_auc - val_auc):5f}")
 
 def roc_comparison(
     model: BaseEstimator,
@@ -60,7 +60,8 @@ def roc_comparison(
         X = train_features,
         y = train_target,
         ax = axis[0],
-        name = "Training"
+        name = "Training",
+        color = "#9A607F"
     )
     axis[0].set(title = "ROC curve of training")
     
@@ -70,13 +71,10 @@ def roc_comparison(
         X = val_features,
         y = val_target,
         ax = axis[1],
-        name = "Validation"
+        name = "Validation",
+        color = "#006BA2"
     )
     axis[1].set(title = "ROC curve of validation")
-    
-    # Set custom colors for the lines
-    axis[0].lines[0].set_color("#006BA2")
-    axis[1].lines[0].set_color("#9A607F")
     
     suptitle(title)
     tight_layout()
