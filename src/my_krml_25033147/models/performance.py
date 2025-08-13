@@ -1,7 +1,7 @@
 from sklearn.metrics import roc_auc_score, RocCurveDisplay, ConfusionMatrixDisplay
 from sklearn.base import BaseEstimator
 from pandas import DataFrame, Series
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 from matplotlib.pyplot import subplots, tight_layout, suptitle
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
@@ -128,3 +128,25 @@ def conf_mat_comparison(
     tight_layout()
     return fig, axis
 
+def generate_probability_output(
+    model : BaseEstimator,
+    features : DataFrame,
+    col_names : List[str, str] = ['non_drafted', 'drafted']
+) -> DataFrame:
+    """
+    generates the prediction probabilities of a model based on a set of features 
+    with the format required for the kaggle competition
+    args
+        model (BaseEstimator): A fitted scikit-learn estimator that implements predict_proba method
+        features (DataFrame): features to make the predictions (can be either test, train or validation)
+    returns
+        DataFrame : a dataframe with the format required for the submission
+    """
+    prob_array = model.predict_proba(features)
+    prob_df = DataFrame(
+        data = prob_array,
+        columns = col_names,
+        index = features.index
+    )
+    prob_df = prob_df.drop(columns = prob_df.columns[0], axis = 1)
+    return prob_df
