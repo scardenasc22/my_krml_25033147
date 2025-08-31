@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "my_krml_25033147"
-version = "2025.0.1.4"
+version = "2025.0.1.6"
 description = "tools for sucess in advanced machine learning"
 authors = ["Santiago Cardenas"]
 license = "None"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11.4"
+python = ">=3.10.0"
 pandas = "2.2.2"
 scikit-learn = "1.5.1"
 matplotlib = "^3.10.5"
