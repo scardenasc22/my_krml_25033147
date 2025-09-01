@@ -62,7 +62,7 @@ def train_test_val_split(
         Then splits the remaining data into train and validation sets.
         Uses random_state=1 for reproducible splits.
     """
-    val_ratio = 1 / (1 - test_ratio)
+    val_ratio = test_ratio / (1 - test_ratio)
     X_data, X_test, y_data, y_test = train_test_split(
         features,
         target,
