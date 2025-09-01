@@ -1,8 +1,10 @@
-from pandas import read_csv, DataFrame, Series
+from pandas import read_csv, DataFrame, Series, to_datetime, date_range, Timedelta
 from os.path import join
 from os import listdir
 from sklearn.model_selection import train_test_split
 from os.path import exists
+from openmeteo_requests import Client
+from typing import List
 
 def load_dataset(
     folder_path: str = './data/processed',
@@ -35,47 +37,6 @@ def load_dataset(
         raise Exception(f"Error loading datasets: {e}") from e
         
     return data
-
-def train_test_val_split(
-    features: DataFrame,
-    target: Series,
-    test_ratio: float = 0.2
-) -> tuple[DataFrame, Series, DataFrame, Series, DataFrame, Series]:
-    """
-    splits features and target into training, validation, and test sets
-    
-    args:
-        features (DataFrame): feature variables to split
-        target (Series): target variable to split
-        test_ratio (float): proportion of data to use for test set (default: 0.2)
-    
-    returns:
-        tuple: (X_train, y_train, X_val, y_val, X_test, y_test) where:
-            - X_train (DataFrame): training features
-            - y_train (Series): training targets
-            - X_val (DataFrame): validation features  
-            - y_val (Series): validation targets
-            - X_test (DataFrame): test features
-            - y_test (Series): test targets
-    note:
-        The function first splits data into test and remaining data using test_ratio.
-        Then splits the remaining data into train and validation sets.
-        Uses random_state=1 for reproducible splits.
-    """
-    val_ratio = test_ratio / (1 - test_ratio)
-    X_data, X_test, y_data, y_test = train_test_split(
-        features,
-        target,
-        test_size = test_ratio,
-        random_state = 1
-    )
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_data,
-        y_data,
-        test_size = val_ratio,
-        random_state = 1
-    )
-    return X_train, y_train, X_val, y_val, X_test, y_test
 
 def save_datasets(
     X_train: DataFrame, 
@@ -128,3 +89,99 @@ def save_datasets(
         
     except Exception as e:
         raise Exception(f"Error saving datasets: {e}") from e
+
+def get_open_meteo_daily_data(
+    lat: float,
+    long: float,
+    start_date: str,
+    end_date: str,
+    variables_list: List[str],
+    time_zone: str = "Australia/Sydney",
+) -> DataFrame:
+    """
+    retrieves historical daily weather data from Open-Meteo API for a specific location and date range
+    
+    args:
+        lat (float): latitude coordinate of the location
+        long (float): longitude coordinate of the location
+        start_date (str): start date in YYYY-MM-DD format
+        end_date (str): end date in YYYY-MM-DD format
+        variables_list (List[str]): list of weather variables to retrieve (e.g., ['temperature_2m_max', 'precipitation_sum'])
+        time_zone (str): timezone for the data (default: "Australia/Sydney")
+    
+    returns:
+        DataFrame: daily weather data with columns for each variable and a 'date' column
+        
+    raises:
+        Exception: if there's an error retrieving data from the Open-Meteo API
+        
+    note:
+        - Data is automatically cleaned by removing rows with missing values
+        - Date column is converted to pandas datetime format
+        - Uses Open-Meteo's historical weather archive API
+        - Common variables include: 'temperature_2m_max', 'temperature_2m_min', 'precipitation_sum', 'wind_speed_10m_max'
+    """
+    try:
+        open_meteo = Client()
+        url = "https://archive-api.open-meteo.com/v1/archive"
+        params = {
+            "latitude": lat,
+            "longitude": long,
+            "start_date": start_date,
+            "end_date": end_date,
+            "daily": variables_list,
+            "timezone": time_zone
+        }
+        responses = open_meteo.weather_api(url, params = params)
+        response = responses[0]
+        daily = response.Daily()
+        daily_data = {
+            value : daily.Variables(index).ValuesAsNumpy() for index, value in enumerate(variables_list)
+        }
+        daily_data['date'] = date_range(
+            start = to_datetime(daily.Time(), unit = "s", utc = True),
+            end = to_datetime(daily.TimeEnd(), unit = "s", utc = True),
+            freq = Timedelta(seconds = daily.Interval()),
+            inclusive = "left"
+        )
+        df = DataFrame(
+            data = daily_data
+        )
+        df.dropna(inplace = True)
+        return df
+    except Exception as e:
+        raise Exception(f"Error extracting historical data: {e}")
+
+def create_rain_column(
+    df : DataFrame,
+    rain_wmo_codes : List[int] = None
+) -> Series:
+    """
+    creates a boolean column indicating whether it rained based on WMO weather codes
+    
+    args:
+        df (DataFrame): dataframe containing weather data with 'weather_code' column
+        rain_wmo_codes (List[int]): list of WMO weather codes that indicate rain
+                                   (default: [61, 62, 63, 64, 80, 81, 82])
+    
+    returns:
+        Series: boolean series where True indicates rain occurred
+        
+    raises:
+        KeyError: if 'weather_code' column is missing from the dataframe
+        Exception: if there's an error processing the weather codes
+        
+    note:
+        - WMO codes 61-64: rain intensity (light to heavy)
+        - WMO codes 80-82: rain showers (light to heavy)
+        - Returns a boolean mask that can be used for filtering or analysis
+    """
+    if rain_wmo_codes is None:
+        rain_wmo_codes = list(range(61, 66)) + list(range(80, 83))
+    try:
+        if 'weather_code' not in df.columns:
+            raise KeyError(f"the df does not have 'weather_code' column")
+        rain_col = df['weather_code'].isin(rain_wmo_codes)
+        return rain_col
+    except Exception as e:
+        raise Exception(f"Error while creating the 'rain' column: {e}")
