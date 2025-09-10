@@ -201,7 +201,7 @@ class WeatherDataFetcher:
             df = DataFrame(
                 data = daily_data
             )
-            df.dropna(inplace = True)
+            # df.dropna(inplace = True) # This is the way to get the full year
             df.sort_values(by = 'date', ascending = True, inplace = True)
             df.set_index(keys = 'date', inplace = True)
             return df
