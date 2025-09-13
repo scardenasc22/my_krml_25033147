@@ -76,16 +76,16 @@ def save_datasets(
             raise Exception(f"the folder '{target_path}' does not exist")
         
         # Save training datasets
-        X_train.to_csv(path_or_buf=join(target_path, 'X_train.csv'), index=False)
-        y_train.to_csv(path_or_buf=join(target_path, 'y_train.csv'), index=False)
+        X_train.to_csv(path_or_buf=join(target_path, 'X_train.csv'), index=True)
+        y_train.to_csv(path_or_buf=join(target_path, 'y_train.csv'), index=True)
         
         # Save validation datasets
-        X_val.to_csv(path_or_buf=join(target_path, 'X_val.csv'), index=False)
-        y_val.to_csv(path_or_buf=join(target_path, 'y_val.csv'), index=False)
+        X_val.to_csv(path_or_buf=join(target_path, 'X_val.csv'), index=True)
+        y_val.to_csv(path_or_buf=join(target_path, 'y_val.csv'), index=True)
         
         # Save test datasets
-        X_test.to_csv(path_or_buf=join(target_path, 'X_test.csv'), index=False)
-        y_test.to_csv(path_or_buf=join(target_path, 'y_test.csv'), index=False)
+        X_test.to_csv(path_or_buf=join(target_path, 'X_test.csv'), index=True)
+        y_test.to_csv(path_or_buf=join(target_path, 'y_test.csv'), index=True)
         
     except Exception as e:
         raise Exception(f"Error saving datasets: {e}") from e
@@ -240,6 +240,42 @@ class WeatherDataFetcher:
         # removing duplicate values after shifting the features
         df_shifted.dropna(inplace = True)    
         return df_shifted
+    
+class WeatherDataRegression(WeatherDataFetcher):
+    # methods
+    def generate_cum_precipitation(
+        self,
+        df : DataFrame,
+        n : int = 3
+    )-> DataFrame:
+        """
+        Generates a column indicating the cumulative precipitation over the past n days.
+
+        This function creates a new column in the DataFrame, `cum_precipitation_in_n_days`, which 
+        represents the cumulative sum of precipitation over a specified rolling window of n days. 
+        The result is shifted to align with the start of the window. Missing values resulting from 
+        the shift are backfilled and filled with 0 to ensure no missing data in the resulting column.
+
+        Parameters:
+        - df (DataFrame): The input pandas DataFrame containing a 'precipitation_sum' column.
+        - n (int, optional): The number of days over which to calculate the cumulative precipitation. Defaults to 3.
+
+        Returns:
+        - DataFrame: A new pandas DataFrame with the added `cum_precipitation_in_n_days` column.
+
+        Raises:
+        - KeyError: If the 'precipitation_sum' column is not present in the DataFrame.
+        - Exception: If an error occurs while creating the new column.
+        """
+        try:
+            df_copy = df.copy()
+            if 'precipitation_sum' not in df_copy.columns:
+                raise KeyError(f"the df does not have the 'precipitation_sum' column")
+            df_copy[f"cum_precipitation_in_{n}_days"] = df_copy['precipitation_sum'].rolling(window = n).apply(lambda x: sum(x)).shift(periods = -n)
+            df_copy.bfill().fillna(value=0, inplace=True)
+            return df_copy
+        except Exception as e:
+            raise Exception(f"Error while creating the new column: {e}")
 
 class WeatherDataClassification(WeatherDataFetcher):
     # methods
@@ -273,29 +309,32 @@ class WeatherDataClassification(WeatherDataFetcher):
             if 'weather_code' not in df.columns:
                 raise KeyError(f"the df does not have 'weather_code' column")
             df_copy['rain'] = df['weather_code'].isin(rain_wmo_codes)
+            df_copy['rain'] = df_copy['rain'].astype(int) # make sure that lagged features are not objects
             return df_copy
         except Exception as e:
             raise Exception(f"Error while creating the 'rain' column: {e}")
         
     def generate_rain_in_future(
         self,
-        df : DataFrame,
-        moving_window : int = 7
+        df: DataFrame,
+        n: int = 7
     ) -> DataFrame:
         """
-        Applies a rolling window to the input series and shifts the result to create a target look-ahead column.
+        Generates a column indicating if it will rain exactly n days from each given day.
 
-        This function is used to generate a new column, `will_rain_in_7_days`, which indicates whether there is any 
-        occurrence of a specified condition within a 7-day moving window. The result is shifted to align with the 
-        start of the window.
+        This function creates a new column in the DataFrame, `will_rain_in_n_days`, which indicates 
+        whether it will rain exactly n days from each day in the dataset. The function shifts the 
+        'rain' column by n periods to align future rain occurrences with the current day. Missing 
+        values resulting from the shift are backfilled and filled with 0 to indicate no rain.
 
         Parameters:
-        - df (DataFrame): The input pandas DataFrame to apply the rolling window on.
-        - moving_window (int, optional): The size of the moving window. Defaults to 7.
+        - df (DataFrame): The input pandas DataFrame containing a 'rain' column.
+        - n (int, optional): The number of days to look ahead. Defaults to 7.
 
         Returns:
-        - DataFrame: A new pandas DataFrame with the look-ahead target values.
+        - DataFrame: A new pandas DataFrame with the added `will_rain_in_n_days` column.
         """
         df_copy = df.copy()
-        df_copy[f"will_rain_in_{moving_window}_days"] = df_copy['rain'].rolling(window = moving_window).apply(lambda x: any(x)).shift(periods = - moving_window)
+        df_copy[f"will_rain_in_{n}_days"] = df_copy['rain'].shift(periods = -n)
+        df_copy.bfill().fillna(value=0, inplace=True)
         return df_copy

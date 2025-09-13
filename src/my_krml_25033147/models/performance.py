@@ -1,35 +1,102 @@
-from sklearn.metrics import roc_auc_score, RocCurveDisplay, ConfusionMatrixDisplay, accuracy_score, recall_score, f1_score
+from sklearn.metrics import (
+    roc_auc_score,
+    RocCurveDisplay,
+    ConfusionMatrixDisplay, 
+    PrecisionRecallDisplay,
+    accuracy_score, 
+    recall_score, 
+    f1_score,
+    average_precision_score,
+    root_mean_squared_error
+)
 from sklearn.base import BaseEstimator
 from pandas import DataFrame, Series
 from typing import Tuple, Optional, List
 from matplotlib.pyplot import subplots, tight_layout, suptitle
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
+from seaborn import despine
 
-def auc_performance_comparison(
+def rmse_comparison(
     model: BaseEstimator,
     train_features : DataFrame,
     val_features : DataFrame,
     train_target : Series,
     val_target : Series
-) -> None:
+) -> DataFrame:
     """
-    computes the auc roc score for training, validation set, and the difference between the two
-    args:
-        model (BaseEstimator): A fitted scikit-learn estimator that implements predict_proba method
-        train_features (DataFrame): Training features
-        val_features (DataFrame): Validation features  
-        train_target (Series): Training target variable
-        val_target (Series): Validation target variable
-    returns
-        None : prints the comparison between the training and validation performance
-    """
-    pred_prob_train = model.predict_proba(train_features)
-    pred_prob_val = model.predict_proba(val_features)
-    train_auc = roc_auc_score(train_target, pred_prob_train[:, 1])
-    val_auc = roc_auc_score(val_target, pred_prob_val[:, 1])
-    print(f"training AUC: {train_auc:5f}\nvalidation AUC: {val_auc:5f}\ndifference: {(train_auc - val_auc):5f}")
+    Compares the root mean squared error (RMSE) between training and validation datasets.
 
+    This function takes a fitted scikit-learn compatible regressor and computes the RMSE
+    on both the training and validation data. It returns a DataFrame that includes the RMSE
+    scores for each dataset and the difference between them, which is useful for identifying
+    overfitting or underfitting.
+
+    Parameters:
+    - model (BaseEstimator): A fitted scikit-learn compatible regressor (e.g., LinearRegression, RandomForestRegressor).
+    - train_features (DataFrame): A pandas DataFrame containing the features of the training set.
+    - val_features (DataFrame): A pandas DataFrame containing the features of the validation set.
+    - train_target (Series): A pandas Series containing the target values of the training set.
+    - val_target (Series): A pandas Series containing the target values of the validation set.
+
+    Returns:
+    - DataFrame: A pandas DataFrame with RMSE as the index, and columns for 'train', 'validation', and 'diff'.
+    """
+    # predictions
+    pred_train = model.predict(train_features)
+    pred_val = model.predict(val_features)
+    results = {}
+    results['train'] = []
+    results['validation'] = []
+    # appending the rmse scores
+    results['train'].append(round(root_mean_squared_error(y_true = train_target, y_pred = pred_train), 4))
+    results['validation'].append(round(root_mean_squared_error(y_true = val_target, y_pred = pred_val), 4))
+    # transforming the results into a dataframe
+    results = DataFrame(data=results, index=['rmse'])
+    results['diff'] = results['train'] - results['validation']
+    return results
+
+def regression_preds_comparison(
+    model: BaseEstimator,
+    train_features : DataFrame,
+    val_features : DataFrame,
+    train_target : Series,
+    val_target : Series,
+    figure_size : Tuple[int, int] = (10, 5),
+    title : Optional[str] = "Predictions comparison"
+) -> Tuple[Figure, Axes]:
+    """
+    Visualizes the comparison between actual and predicted values for training and validation datasets.
+
+    This function generates a scatter plot comparing the actual and predicted values for both the 
+    training and validation datasets. It includes a line representing perfect predictions for reference.
+
+    Parameters:
+    - model (BaseEstimator): A fitted scikit-learn compatible regressor (e.g., LinearRegression, RandomForestRegressor).
+    - train_features (DataFrame): A pandas DataFrame containing the features of the training set.
+    - val_features (DataFrame): A pandas DataFrame containing the features of the validation set.
+    - train_target (Series): A pandas Series containing the target values of the training set.
+    - val_target (Series): A pandas Series containing the target values of the validation set.
+    - figure_size (Tuple[int, int], optional): The size of the figure as (width, height). Defaults to (10, 5).
+    - title (str, optional): The title of the plot. Defaults to "Predictions comparison".
+
+    Returns:
+    - Tuple[Figure, Axes]: The matplotlib Figure and Axes objects for the plot.
+    """
+    fig, axis = subplots(nrows = 1, ncols = 2, figsize = figure_size)
+    despine(fig)
+    # predictions
+    pred_train = model.predict(train_features)
+    pred_val = model.predict(val_features)
+    # making the plot
+    axis.plot(train_target, train_target, linestyle ='--', color ='black', label ='perfect prediction')
+    axis.scatter(train_target, pred_train, color ='#25ADC2', edgecolors = 'white', label = 'training prediction')
+    axis.scatter(val_target, pred_val, color ='#C98CAC', edgecolors = 'white', label = 'validation prediction')
+    axis.legend()
+    axis.set(x_label = "Actual", y_label = "Prediction")
+    suptitle(title)
+    return fig, axis
+    
 def classification_metrics_comparison(
     model: BaseEstimator,
     train_features : DataFrame,
@@ -52,7 +119,7 @@ def classification_metrics_comparison(
         val_target: A pandas Series containing the target labels of the validation set.
 
     Returns:
-        A pandas DataFrame with metrics (accuracy, recall, f1_score, auc_roc)
+        A pandas DataFrame with metrics (accuracy, recall, f1_score, auc_roc, auc_pr)
         as index, and columns for 'train', 'validation', and 'diff'.
     """
     # probabilities
@@ -66,19 +133,22 @@ def classification_metrics_comparison(
     results['train'] = []
     results['validation'] = []
     # appending the values of accuracy
-    results['train'].append(accuracy_score(y_true = train_target, y_pred = pred_train))
-    results['validation'].append(accuracy_score(y_true = val_target, y_pred = pred_val))
+    results['train'].append(round(accuracy_score(y_true=train_target, y_pred=pred_train), 4))
+    results['validation'].append(round(accuracy_score(y_true=val_target, y_pred=pred_val), 4))
     # appending the results of recall
-    results['train'].append(recall_score(y_true = train_target, y_pred = pred_train))
-    results['validation'].append(recall_score(y_true = val_target, y_pred = pred_val))
+    results['train'].append(round(recall_score(y_true=train_target, y_pred=pred_train), 4))
+    results['validation'].append(round(recall_score(y_true=val_target, y_pred=pred_val), 4))
     # appending the results of f1 score
-    results['train'].append(f1_score(y_true = train_target, y_pred = pred_train))
-    results['validation'].append(f1_score(y_true = val_target, y_pred = pred_val))
+    results['train'].append(round(f1_score(y_true=train_target, y_pred=pred_train), 4))
+    results['validation'].append(round(f1_score(y_true=val_target, y_pred=pred_val), 4))
     # appending the results of auc roc score
-    results['train'].append(roc_auc_score(train_target, pred_prob_train[:, 1]))
-    results['validation'].append(roc_auc_score(val_target, pred_prob_val[:, 1]))
+    results['train'].append(round(roc_auc_score(train_target, pred_prob_train[:, 1]), 4))
+    results['validation'].append(round(roc_auc_score(val_target, pred_prob_val[:, 1]), 4))
+    # appending the results of auc pr score
+    results['train'].append(round(average_precision_score(train_target, pred_prob_train[:, 1]), 4))
+    results['validation'].append(round(average_precision_score(val_target, pred_prob_val[:, 1]), 4))
     # transforming the results into a dataframe
-    results = DataFrame(data = results, index = ['accuracy', 'recall', 'f1_score', 'auc_roc'])
+    results = DataFrame(data=results, index=['accuracy', 'recall', 'f1_score', 'auc_roc', 'auc_pr'])
     results['diff'] = results['train'] - results['validation']
     return results
     
@@ -88,7 +158,7 @@ def roc_comparison(
     val_features : DataFrame,
     train_target : Series,
     val_target : Series,
-    figure_size : Tuple[int, int] = (16, 6),
+    figure_size : Tuple[int, int] = (10, 5),
     title : Optional[str] = "ROC curves"
 ) -> Tuple[Figure, Axes]:
     """
@@ -139,7 +209,7 @@ def conf_mat_comparison(
     train_target : Series,
     val_target : Series,
     title : Optional[str] = "Confusion Matrices",
-    figure_size : Tuple[int, int] = (16, 6),
+    figure_size : Tuple[int, int] = (10, 5),
 ) -> Tuple[Figure, Axes]:
     """
     creates the confusion matrix for the training and validation set
@@ -175,6 +245,56 @@ def conf_mat_comparison(
         cmap = 'Reds'
     )
     axis[1].set(title = "Confusion Matrix for validation")
+    
+    suptitle(title)
+    tight_layout()
+    return fig, axis
+
+def pr_curve_comparison(
+    model: BaseEstimator,
+    train_features: DataFrame,
+    val_features: DataFrame,
+    train_target: Series,
+    val_target: Series,
+    title: Optional[str] = "Precision-Recall Curves",
+    figure_size: Tuple[int, int] = (10, 5),
+) -> Tuple[Figure, Axes]:
+    """
+    Creates the precision-recall curves for the training and validation sets.
+
+    Args:
+        model (BaseEstimator): A fitted scikit-learn estimator that implements predict_proba method.
+        train_features (DataFrame): Training features.
+        val_features (DataFrame): Validation features.
+        train_target (Series): Training target variable.
+        val_target (Series): Validation target variable.
+        figure_size (Tuple[int, int]): Figure size as (width, height).
+        title (str): Main title for the plot.
+
+    Returns:
+        Tuple[Figure, Axes]: Figure and axes objects to save the plots.
+    """
+    fig, axis = subplots(nrows=1, ncols=2, figsize=figure_size)
+    
+    # Training Precision-Recall curve
+    PrecisionRecallDisplay.from_estimator(
+        estimator=model,
+        X=train_features,
+        y=train_target,
+        ax=axis[0],
+        name="Training"
+    )
+    axis[0].set(title="Precision-Recall Curve for Training")
+    
+    # Validation Precision-Recall curve
+    PrecisionRecallDisplay.from_estimator(
+        estimator=model,
+        X=val_features,
+        y=val_target,
+        ax=axis[1],
+        name="Validation"
+    )
+    axis[1].set(title="Precision-Recall Curve for Validation")
     
     suptitle(title)
     tight_layout()

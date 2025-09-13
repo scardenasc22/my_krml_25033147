@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "my_krml_25033147"
-version = "2025.0.1.10"
+version = "2025.0.1.11"
 description = "tools for sucess in advanced machine learning"
 authors = ["Santiago Cardenas"]
 license = "None"
@@ -12,6 +12,7 @@ pandas = "2.2.2"
 scikit-learn = "1.5.1"
 matplotlib = "^3.10.5"
 openmeteo-requests = "^1.7.2"
+seaborn = "^0.13.2"
 
 
 [tool.poetry.group.dev.dependencies]
