@@ -336,5 +336,5 @@ class WeatherDataClassification(WeatherDataFetcher):
         """
         df_copy = df.copy()
         df_copy[f"will_rain_in_{n}_days"] = df_copy['rain'].shift(periods = -n)
-        df_copy.bfill().fillna(value=0, inplace=True)
+        df_copy.dropna(inplace = True)
         return df_copy

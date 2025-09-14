@@ -36,8 +36,9 @@ class LaggedFeatureCreator(BaseEstimator, TransformerMixin):
         df_with_lags = copy_df.assign(**shifted_columns)
         
         # The first `lagging_period` rows will have NaN values
-        # after creating the lagged features, so we drop them.
-        df_with_lags.bfill().fillna(0, inplace = True)
+        # after creating the lagged features, so we replace them using 0
+        # other data imputation can also be considered if the lag period is signigicant
+        df_with_lags.fillna(0, inplace = True)
         
         return df_with_lags
 
