@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "my_krml_25033147"
-version = "2025.0.1.13"
+version = "2025.0.1.14"
 description = "tools for sucess in advanced machine learning"
 authors = ["Santiago Cardenas"]
 license = "None"

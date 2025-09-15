@@ -7,7 +7,8 @@ from sklearn.metrics import (
     recall_score, 
     f1_score,
     average_precision_score,
-    root_mean_squared_error
+    root_mean_squared_error,
+    mean_absolute_error
 )
 from sklearn.base import BaseEstimator
 from pandas import DataFrame, Series
@@ -25,7 +26,7 @@ def rmse_comparison(
     val_target : Series
 ) -> DataFrame:
     """
-    Compares the root mean squared error (RMSE) between training and validation datasets.
+    Compares the root mean squared error (RMSE) and the Mean Absolute Error (MAE) between training and validation datasets.
 
     This function takes a fitted scikit-learn compatible regressor and computes the RMSE
     on both the training and validation data. It returns a DataFrame that includes the RMSE
@@ -40,7 +41,7 @@ def rmse_comparison(
     - val_target (Series): A pandas Series containing the target values of the validation set.
 
     Returns:
-    - DataFrame: A pandas DataFrame with RMSE as the index, and columns for 'train', 'validation', and 'diff'.
+    - DataFrame: A pandas DataFrame with RMSE and MAE as the index, and columns for 'train', 'validation', and 'diff'.
     """
     # predictions
     pred_train = model.predict(train_features)
@@ -51,8 +52,11 @@ def rmse_comparison(
     # appending the rmse scores
     results['train'].append(round(root_mean_squared_error(y_true = train_target, y_pred = pred_train), 4))
     results['validation'].append(round(root_mean_squared_error(y_true = val_target, y_pred = pred_val), 4))
+    # appending the mae scores
+    results['train'].append(round(mean_absolute_error(y_true = train_target, y_pred = pred_train), 4))
+    results['validation'].append(round(mean_absolute_error(y_true = val_target, y_pred = pred_val), 4))
     # transforming the results into a dataframe
-    results = DataFrame(data=results, index=['rmse'])
+    results = DataFrame(data=results, index=['rmse', 'mae'])
     results['diff'] = results['train'] - results['validation']
     return results
 
