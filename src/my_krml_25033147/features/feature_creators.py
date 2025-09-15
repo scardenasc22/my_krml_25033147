@@ -1,4 +1,5 @@
 from sklearn.base import BaseEstimator, TransformerMixin
+import pandas as pd
 
 class LaggedFeatureCreator(BaseEstimator, TransformerMixin):
     """
@@ -37,8 +38,12 @@ class LaggedFeatureCreator(BaseEstimator, TransformerMixin):
         
         # The first `lagging_period` rows will have NaN values
         # after creating the lagged features, so we replace them using 0
-        # other data imputation can also be considered if the lag period is signigicant
-        df_with_lags.fillna(0, inplace = True)
+        
+        # Identify columns with missing values
+        columns_with_nan = df_with_lags.columns[df_with_lags.isna().any()].tolist()
+
+        # Fill NaN values in those columns with 0
+        df_with_lags[columns_with_nan] = df_with_lags[columns_with_nan].fillna(0)
         
         return df_with_lags
 
