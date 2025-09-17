@@ -286,7 +286,8 @@ def pr_curve_comparison(
         X=train_features,
         y=train_target,
         ax=axis[0],
-        name="Training"
+        name="Training",
+        color = "#9A607F"
     )
     axis[0].set(title="Precision-Recall Curve for Training")
     
@@ -296,7 +297,8 @@ def pr_curve_comparison(
         X=val_features,
         y=val_target,
         ax=axis[1],
-        name="Validation"
+        name="Validation",
+        color = "#006BA2"
     )
     axis[1].set(title="Precision-Recall Curve for Validation")
     

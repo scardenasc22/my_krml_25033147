@@ -272,7 +272,7 @@ class WeatherDataRegression(WeatherDataFetcher):
             if 'precipitation_sum' not in df_copy.columns:
                 raise KeyError(f"the df does not have the 'precipitation_sum' column")
             df_copy[f"cum_precipitation_in_{n}_days"] = df_copy['precipitation_sum'].rolling(window = n).apply(lambda x: sum(x)).shift(periods = -n)
-            df_copy.bfill().fillna(value=0, inplace=True)
+            df_copy.dropna(inplace=True) # delete the most recent days
             return df_copy
         except Exception as e:
             raise Exception(f"Error while creating the new column: {e}")
