@@ -97,7 +97,7 @@ def regression_preds_comparison(
     axis.scatter(train_target, pred_train, color ='#25ADC2', edgecolors = 'white', label = 'training prediction')
     axis.scatter(val_target, pred_val, color ='#C98CAC', edgecolors = 'white', label = 'validation prediction')
     axis.legend()
-    axis.set(x_label = "Actual", y_label = "Prediction")
+    axis.set(xlabel = "Actual", ylabel = "Prediction")
     suptitle(title)
     return fig, axis
     
