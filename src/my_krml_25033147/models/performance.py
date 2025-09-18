@@ -87,7 +87,7 @@ def regression_preds_comparison(
     Returns:
     - Tuple[Figure, Axes]: The matplotlib Figure and Axes objects for the plot.
     """
-    fig, axis = subplots(nrows = 1, ncols = 2, figsize = figure_size)
+    fig, axis = subplots(nrows = 1, ncols = 1, figsize = figure_size)
     despine(fig)
     # predictions
     pred_train = model.predict(train_features)

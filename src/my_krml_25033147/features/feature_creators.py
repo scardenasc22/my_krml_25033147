@@ -1,5 +1,6 @@
 from sklearn.base import BaseEstimator, TransformerMixin
 import pandas as pd
+from typing import List
 
 class LaggedFeatureCreator(BaseEstimator, TransformerMixin):
     """
@@ -81,3 +82,44 @@ class TimeFeatureCreator(BaseEstimator, TransformerMixin):
         copy_df['day_of_year'] = copy_df.index.day_of_year
         
         return copy_df
+
+class RainFeatureCreator(BaseEstimator, TransformerMixin):
+    """
+    A custom transformer for creating a binary 'rain' feature based on weather codes.
+
+    This transformer checks for the presence of a 'rain' column in the input DataFrame. If the 'rain' 
+    column is not present, it creates a new 'rain' column based on specified weather codes that indicate 
+    rain. The transformer is compatible with scikit-learn's pipeline and can be used in preprocessing steps.
+
+    Attributes:
+    - rain_codes (List[int]): A list of weather codes that indicate rain. Defaults to [61, 62, 63, 66, 67, 80, 81, 82].
+
+    Methods:
+    - fit(X, y=None): Returns the transformer instance. No fitting is required.
+    - transform(X, rain_codes=List[int]): Transforms the input DataFrame by adding a 'rain' column if it doesn't exist.
+
+    Raises:
+    - KeyError: If the 'weather_code' column is not present in the input DataFrame.
+    """
+
+    def fit(
+        self,
+        X,
+        y=None
+    ):
+        return self
+
+    def transform(
+        self,
+        X: pd.DataFrame,
+        rain_codes: List[int] = [61, 62, 63, 66, 67, 80, 81, 82]
+    ):
+        df_copy = X.copy()
+        if "rain" in df_copy.columns:
+            return df_copy
+        elif not "weather_code" in df_copy.columns:
+            raise KeyError(f"the 'weather_code' is not available")
+        else:
+            df_copy['rain'] = df_copy['weather_code'].isin(rain_codes).astype(int)
+            return df_copy
+        
