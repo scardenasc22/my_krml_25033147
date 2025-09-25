@@ -17,6 +17,7 @@ from matplotlib.pyplot import subplots, tight_layout, suptitle
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from seaborn import despine
+from numpy import max
 
 def rmse_comparison(
     model: BaseEstimator,
@@ -93,7 +94,8 @@ def regression_preds_comparison(
     pred_train = model.predict(train_features)
     pred_val = model.predict(val_features)
     # making the plot
-    axis.plot(train_target, train_target, linestyle ='--', color ='black', label ='perfect prediction')
+    max_value = max(max(pred_train), max(pred_val), max(train_target), max(val_target))
+    axis.plot([0, max_value], [0, max_value], linestyle ='--', color ='black', label ='perfect prediction')
     axis.scatter(train_target, pred_train, color ='#25ADC2', edgecolors = 'white', label = 'training prediction')
     axis.scatter(val_target, pred_val, color ='#C98CAC', edgecolors = 'white', label = 'validation prediction')
     axis.legend()
