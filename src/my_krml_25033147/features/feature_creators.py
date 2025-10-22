@@ -30,7 +30,7 @@ class LaggedFeatureCreator(BaseEstimator, TransformerMixin):
         
         # Build a single dictionary of all lagged columns
         shifted_columns = {
-            f"{col}_t-{i}": copy_df[col].shift(i) for i in range(1, self.lagging_period + 1)
+            f"{col}_t-{i}": copy_df[col].shift(i).bfill() for i in range(1, self.lagging_period + 1)
             for col in self.features_list
         }
 
@@ -41,10 +41,10 @@ class LaggedFeatureCreator(BaseEstimator, TransformerMixin):
         # after creating the lagged features, so we replace them using 0
         
         # Identify columns with missing values
-        columns_with_nan = df_with_lags.columns[df_with_lags.isna().any()].tolist()
+        # columns_with_nan = df_with_lags.columns[df_with_lags.isna().any()].tolist()
 
         # Fill NaN values in those columns with 0
-        df_with_lags[columns_with_nan] = df_with_lags[columns_with_nan].fillna(0)
+        # df_with_lags[columns_with_nan] = df_with_lags[columns_with_nan].fillna(0)
         
         return df_with_lags
 
@@ -122,4 +122,58 @@ class RainFeatureCreator(BaseEstimator, TransformerMixin):
         else:
             df_copy['rain'] = df_copy['weather_code'].isin(rain_codes).astype(int)
             return df_copy
+
+class MovingAverageFeatureCreator(BaseEstimator, TransformerMixin):
+    """
+    A custom scikit-learn transformer to create moving averages for a DataFrame.
+    """
+
+    def __init__(self, features_list, **range_kwargs):
+        self.features_list = features_list
+        self.range_kwargs = range_kwargs
+        self.moving_average_periods = self._create_moving_average_periods()
+
+    def _create_moving_average_periods(self):
+        """
+        Create moving average periods based on the provided range_kwargs.
         
+        Returns:
+            List: A list of moving average periods.
+        """
+        try:
+            start = self.range_kwargs.get('start', 1)
+            stop = self.range_kwargs['stop']
+            step = self.range_kwargs.get('step', 1)
+            return list(range(start, stop, step))
+        except KeyError as e:
+            raise ValueError(f"Missing necessary argument for range: {e}")
+
+    def fit(self, X, y=None):
+        """
+        This transformer does not need to be fitted, so we simply return self.
+        """
+        return self
+
+    def transform(self, X):
+        """
+        Creates moving average features for the specified columns in the input DataFrame.
+        
+        Args:
+            X (pd.DataFrame): The input DataFrame.
+            
+        Returns:
+            pd.DataFrame: A new DataFrame with the moving average features.
+        """
+        copy_df = X.copy()
+        
+        # Build a dictionary of all moving average columns
+        moving_average_columns = {
+            f"{col}_ma-{period}": copy_df[col].rolling(window=period).mean().bfill()
+            for period in self.moving_average_periods 
+            for col in self.features_list
+        }
+
+        # Use .assign() to add all the new columns at once
+        df_with_moving_averages = copy_df.assign(**moving_average_columns)
+        
+        return df_with_moving_averages

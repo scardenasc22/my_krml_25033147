@@ -19,7 +19,7 @@ from matplotlib.axes import Axes
 from seaborn import despine
 from numpy import max
 
-def rmse_comparison(
+def rmse_mae_comparison(
     model: BaseEstimator,
     train_features : DataFrame,
     val_features : DataFrame,
@@ -67,7 +67,7 @@ def regression_preds_comparison(
     val_features : DataFrame,
     train_target : Series,
     val_target : Series,
-    figure_size : Tuple[int, int] = (10, 5),
+    figure_size : Tuple[int, int] = (7, 5),
     title : Optional[str] = "Predictions comparison"
 ) -> Tuple[Figure, Axes]:
     """
@@ -101,6 +101,61 @@ def regression_preds_comparison(
     axis.legend()
     axis.set(xlabel = "Actual", ylabel = "Prediction")
     suptitle(title)
+    return fig, axis
+
+def time_based_pred_comparison(
+    model: BaseEstimator,
+    train_features : DataFrame,
+    val_features : DataFrame,
+    train_target : Series,
+    val_target : Series,
+    figure_size : Tuple[int, int] = (7, 5),
+    title : Optional[str] = "Time based predictions"
+) -> Tuple[Figure, Axes]:
+    """
+    Compare time-based model predictions with actual values and plot the results.
+    
+    Args:
+        model (BaseEstimator): The trained scikit-learn model to perform predictions.
+        train_features (DataFrame): Training dataset features for prediction.
+        val_features (DataFrame): Validation dataset features for prediction.
+        train_target (Series): Actual target values from the training set for comparison.
+        val_target (Series): Actual target values from the validation set for comparison.
+        figure_size (Tuple[int, int], optional): The size of the plot figure. Defaults to (7, 5).
+        title (Optional[str], optional): The title of the plot. Defaults to "Time based predictions".
+        
+    Returns:
+        Tuple[Figure, Axes]: Matplotlib Figure and Axes objects containing the plot.
+        
+    The function performs predictions on the provided training and validation datasets using the specified model.
+    It plots both the actual and predicted values for training and validation datasets, marking the division
+    between them with a vertical line. The plot includes legends and is styled to visually differentiate
+    between training and validation data.
+    """
+    fig, axis = subplots(nrows = 1, ncols = 1, figsize = figure_size)
+    despine(fig)
+    # predictions
+    pred_train = model.predict(train_features)
+    pred_val = model.predict(val_features)
+    pred_train = Series(
+        data = pred_train,
+        index = train_features.index
+    )
+    pred_val = Series(
+        data = pred_val,
+        index = val_features.index
+    )
+    # plot actual
+    axis.plot(train_target,color = '#006BA2', label = 'actual train')
+    axis.plot(val_target, color = '#006BA2', linestyle = "--", label = 'actual validation')
+    # plot predictions
+    axis.plot(pred_train, color = '#3EBCD2', label = 'pred train')
+    axis.plot(pred_val, linestyle = "--", color = '#3EBCD2', label = 'pred validation')
+    # division between train and validation
+    axis.axvline(x = max(train_features.index), linestyle = '--', color = '#B7C6CF')
+    axis.set(title = title, xlabel = "date", ylabel = "price")
+    axis.legend()
+    tight_layout()
     return fig, axis
     
 def classification_metrics_comparison(
