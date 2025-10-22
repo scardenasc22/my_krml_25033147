@@ -142,3 +142,4 @@ dmypy.json
 .DS_Store
 publishing_workflow.txt
 package_downloading_workflow.txt
+data/*

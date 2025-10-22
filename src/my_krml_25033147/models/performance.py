@@ -94,7 +94,7 @@ def regression_preds_comparison(
     pred_train = model.predict(train_features)
     pred_val = model.predict(val_features)
     # making the plot
-    max_value = max(max(pred_train), max(pred_val), max(train_target.values), max(val_target.values))
+    max_value = max(max(pred_train), max(pred_val), max(train_target.values), max(val_target.values))[0]
     axis.plot([0, max_value], [0, max_value], linestyle ='--', color ='black', label ='perfect prediction')
     axis.scatter(train_target, pred_train, color ='#25ADC2', edgecolors = 'white', label = 'training prediction')
     axis.scatter(val_target, pred_val, color ='#C98CAC', edgecolors = 'white', label = 'validation prediction')
