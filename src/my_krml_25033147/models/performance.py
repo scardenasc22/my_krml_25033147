@@ -11,7 +11,7 @@ from sklearn.metrics import (
     mean_absolute_error
 )
 from sklearn.base import BaseEstimator
-from pandas import DataFrame, Series
+from pandas import DataFrame, Series, concat
 from typing import Tuple, Optional, List
 from matplotlib.pyplot import subplots, tight_layout, suptitle
 from matplotlib.figure import Figure
@@ -94,7 +94,13 @@ def regression_preds_comparison(
     pred_train = model.predict(train_features)
     pred_val = model.predict(val_features)
     # making the plot
-    max_value = max(max(pred_train), max(pred_val), max(train_target.values), max(val_target.values))[0]
+    combined = concat([
+        Series(pred_train, index = train_target.index),
+        Series(pred_val, index = val_target.index),
+        train_target,
+        val_target
+    ])
+    max_value = combined.max()
     axis.plot([0, max_value], [0, max_value], linestyle ='--', color ='black', label ='perfect prediction')
     axis.scatter(train_target, pred_train, color ='#25ADC2', edgecolors = 'white', label = 'training prediction')
     axis.scatter(val_target, pred_val, color ='#C98CAC', edgecolors = 'white', label = 'validation prediction')
