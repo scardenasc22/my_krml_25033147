@@ -128,25 +128,9 @@ class MovingAverageFeatureCreator(BaseEstimator, TransformerMixin):
     A custom scikit-learn transformer to create moving averages for a DataFrame.
     """
 
-    def __init__(self, features_list, **range_kwargs):
+    def __init__(self, features_list, ma_periods):
         self.features_list = features_list
-        self.range_kwargs = range_kwargs
-        self.moving_average_periods = self._create_moving_average_periods()
-
-    def _create_moving_average_periods(self):
-        """
-        Create moving average periods based on the provided range_kwargs.
-        
-        Returns:
-            List: A list of moving average periods.
-        """
-        try:
-            start = self.range_kwargs.get('start', 1)
-            stop = self.range_kwargs['stop']
-            step = self.range_kwargs.get('step', 1)
-            return list(range(start, stop, step))
-        except KeyError as e:
-            raise ValueError(f"Missing necessary argument for range: {e}")
+        self.ma_periods = ma_periods
 
     def fit(self, X, y=None):
         """
@@ -168,8 +152,8 @@ class MovingAverageFeatureCreator(BaseEstimator, TransformerMixin):
         
         # Build a dictionary of all moving average columns
         moving_average_columns = {
-            f"{col}_ma-{period}": copy_df[col].rolling(window=period).mean().bfill()
-            for period in self.moving_average_periods 
+            f"{col}_ma-{i}": copy_df[col].rolling(window=i).mean().bfill()
+            for i in range(1, self.ma_periods + 1) 
             for col in self.features_list
         }
 

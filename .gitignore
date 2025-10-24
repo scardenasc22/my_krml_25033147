@@ -143,3 +143,4 @@ dmypy.json
 publishing_workflow.txt
 package_downloading_workflow.txt
 data/*
+*.ipynb

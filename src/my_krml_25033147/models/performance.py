@@ -18,7 +18,57 @@ from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 from seaborn import despine
 from numpy import max
+from collections import defaultdict
 
+class RegressionMetricsEvaluator:
+    def rmse_mae_from_estimator(
+        model: BaseEstimator,
+        subset_1_features : DataFrame,
+        subset_2_features : DataFrame,
+        subset_1_target : Series,
+        subset_2_target : Series,
+        subset_names : Optional[List[str]] = ['train', 'validation']
+    ) -> DataFrame:
+        pred_subset_1 = model.predict(subset_1_features)
+        pred_subset_2 = model.predict(subset_2_features)
+        results = defaultdict(list)
+        results[subset_names[0]].append(round(root_mean_squared_error(subset_1_target, pred_subset_1), 4))
+        results[subset_names[1]].append(round(root_mean_squared_error(subset_2_target, pred_subset_2), 4))
+        results[subset_names[0]].append(round(mean_absolute_error(subset_1_target, pred_subset_1), 4))
+        results[subset_names[1]].append(round(mean_absolute_error(subset_2_target, pred_subset_2), 4))
+        results = DataFrame(data=results, index=['rmse', 'mae'])
+        results['diff'] = results[subset_names[0]] - results[subset_names[1]]
+        return results
+    def pred_comparison_from_estimator(
+        model: BaseEstimator,
+        subset_1_features : DataFrame,
+        subset_2_features : DataFrame,
+        subset_1_target : Series,
+        subset_2_target : Series,
+        subset_names : Optional[List[str]] = ['train', 'validation'],
+        figure_size : Tuple[int, int] = (7, 5),
+        title : Optional[str] = "Predictions comparison"
+    ) -> Tuple[Figure, Axes]:
+        pred_subset_1 = model.predict(subset_1_features)
+        pred_subset_2 = model.predict(subset_2_features)
+        combined = concat([
+            subset_1_target,
+            subset_2_target,
+            Series(pred_subset_1, index = subset_1_features.index),
+            Series(pred_subset_2, index = subset_2_features.index)
+        ])
+        max_value = max(combined.max())
+        fig, axis = subplots(nrows = 1, ncols = 1, figsize = figure_size)
+        despine(fig)
+        axis.plot([0, max_value], [0, max_value], linestyle ='--', color ='black', label ='perfect prediction')
+        axis.scatter(subset_1_target, pred_subset_1, color ='#25ADC2', edgecolors = 'white', label = f'{subset_names[0]} prediction')
+        axis.scatter(subset_2_target, pred_subset_2, color ='#C98CAC', edgecolors = 'white', label = f'{subset_names[1]} prediction')
+        axis.legend()
+        axis.set(xlabel = "Actual", ylabel = "Prediction")
+        suptitle(title)
+        tight_layout()
+        return fig, axis
+        
 def rmse_mae_comparison(
     model: BaseEstimator,
     train_features : DataFrame,
@@ -100,7 +150,7 @@ def regression_preds_comparison(
         train_target,
         val_target
     ])
-    max_value = combined.max()
+    max_value = max(combined.max())
     axis.plot([0, max_value], [0, max_value], linestyle ='--', color ='black', label ='perfect prediction')
     axis.scatter(train_target, pred_train, color ='#25ADC2', edgecolors = 'white', label = 'training prediction')
     axis.scatter(val_target, pred_val, color ='#C98CAC', edgecolors = 'white', label = 'validation prediction')
