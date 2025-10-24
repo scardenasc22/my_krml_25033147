@@ -28,7 +28,7 @@ class RegressionMetricsEvaluator:
         """Method to set the model after initialization."""
         self.model = model
 
-    def rmse_mae_from_estimator(
+    def rmse_mae_comparison(
         self,
         subset_1_features: DataFrame,
         subset_2_features: DataFrame,
@@ -52,7 +52,7 @@ class RegressionMetricsEvaluator:
         results_df['diff'] = results_df[subset_names[0]] - results_df[subset_names[1]]
         return results_df
 
-    def pred_comparison_from_estimator(
+    def pred_comparison(
         self,
         subset_1_features: DataFrame,
         subset_2_features: DataFrame,
@@ -76,7 +76,7 @@ class RegressionMetricsEvaluator:
 
         max_value = max(combined.max())
         fig, axis = subplots(nrows=1, ncols=1, figsize=figure_size)
-
+        despine(fig)
         axis.plot([0, max_value], [0, max_value], linestyle='--', color='black', label='Perfect prediction')
         axis.scatter(subset_1_target, pred_subset_1, color='#25ADC2', edgecolors='white', label=f'{subset_names[0]} prediction')
         axis.scatter(subset_2_target, pred_subset_2, color='#C98CAC', edgecolors='white', label=f'{subset_names[1]} prediction')
@@ -87,7 +87,45 @@ class RegressionMetricsEvaluator:
         tight_layout()
 
         return fig, axis
+    def time_based_pred_comparison(
+        self,
+        subset_1_features: DataFrame,
+        subset_2_features: DataFrame,
+        subset_1_target: Series,
+        subset_2_target: Series,
+        subset_names: Optional[List[str]] = ['train', 'validation'],
+        figure_size: Tuple[int, int] = (7, 5),
+        title: Optional[str] = "Predictions comparison"
+    ) -> Tuple[Figure, Axes]:
+        if self.model is None:
+            raise ValueError("Model has not been set.")
         
+        pred_subset_1 = self.model.predict(subset_1_features)
+        pred_subset_2 = self.model.predict(subset_2_features)
+        
+        pred_subset_1 = Series(
+            data = pred_subset_1,
+            index = subset_1_features.index
+        )
+        pred_subset_2 = Series(
+            data = pred_subset_2,
+            index = subset_2_features.index
+        )
+        fig, axis = subplots(nrows = 1, ncols = 1, figsize = figure_size)
+        despine(fig)
+        # plot actual
+        axis.plot(subset_1_target, color = '#006BA2', label = f'actual {subset_names[0]}')
+        axis.plot(subset_2_target, color = '#006BA2', linestyle = "--", label = f'actual {subset_names[1]}')
+        # plot predictions
+        axis.plot(pred_subset_1, color = '#3EBCD2', label = f'pred {subset_names[0]}')
+        axis.plot(pred_subset_2, linestyle = "--", color = '#3EBCD2', label = f'pred {subset_names[1]}')
+        # division between train and validation
+        axis.axvline(x = max(subset_1_features.index), linestyle = '--', color = '#B7C6CF')
+        axis.set(title = title, xlabel = "date", ylabel = "price")
+        axis.legend()
+        tight_layout()
+        return fig, axis
+
 def rmse_mae_comparison(
     model: BaseEstimator,
     train_features : DataFrame,
